@@ -24,7 +24,7 @@ public class Monitor {
             try {
                 Thread.sleep(_config.getPollInterval()/4);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                _logger.WriteError(e);
             }
         }
     }

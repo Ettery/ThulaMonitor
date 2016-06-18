@@ -3,9 +3,16 @@ package net.ettery.ThulaMonitor;
 import net.ettery.utils.DatabaseUtils;
 import net.ettery.utils.FileLogger;
 import net.ettery.utils.ILogger;
+import org.joda.time.DateTime;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.Select;
 
 import java.io.*;
 import java.util.*;
+
+import static net.ettery.jooq.thula.generated.Tables.TEMPERATURELOG;
 
 public class Main {
 
@@ -21,20 +28,18 @@ public class Main {
         try {
             _props.load(new FileInputStream(args[0]));
             _configuration = new Configuration(_props);
-            DatabaseUtils.setConfiguration(_configuration.getDatabaseUrl(),
-                                                _configuration.getDatabaseUser(),
-                                                _configuration.getDatabasePass());
             _logger = new FileLogger().initialise(_props);
+            DatabaseUtils.setConfiguration(_configuration.getDatabaseUrl(),
+                                            _configuration.getDatabaseUser(),
+                                            _configuration.getDatabasePass());
 
             GmailHelper.initialise(_configuration);
-            GmailHelper.ReadLabels();
 
-            GmailHelper.sendMessage("ettery@gmail.com", _configuration.getGmailSender(), "Test message subject", "Test message body");
+            _monitor = new Monitor(_configuration, _logger);
+            _monitor.Start();
 
-//            _monitor = new Monitor(_configuration, _logger);
-//            _monitor.Start();
         } catch (Exception exc) {
-            System.out.println(exc.getStackTrace());
+             exc.printStackTrace(System.err);
         }
     }
 }

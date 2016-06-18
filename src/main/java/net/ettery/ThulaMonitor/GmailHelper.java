@@ -13,11 +13,15 @@ import com.google.api.services.gmail.GmailScopes;
 import com.google.api.services.gmail.model.Label;
 import com.google.api.services.gmail.model.ListLabelsResponse;
 import com.google.api.services.gmail.model.Message;
+import net.ettery.utils.ILogger;
 
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import java.io.*;
 import java.util.Arrays;
 import java.util.List;
@@ -139,16 +143,27 @@ public class GmailHelper {
         }
     }
 
-    private static MimeMessage createEmail(String to, String from, String subject, String bodyText) throws MessagingException {
+    private static MimeMessage createEmail(String to, String from, String subject, String bodyText, Boolean isHtml) throws MessagingException {
         Properties props = new Properties();
         Session session = Session.getDefaultInstance(props, null);
 
-        MimeMessage email = new MimeMessage(session);
-        email.setFrom(new InternetAddress(from));
-        email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(to));
-        email.setSubject(subject);
-        email.setText(bodyText);
-        return email;
+        MimeMessage message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(from));
+        message.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(to));
+
+        message.setSubject(subject,"UTF-8");
+
+        if(isHtml) {
+            Multipart mp = new MimeMultipart();
+            MimeBodyPart htmlPart = new MimeBodyPart();
+            htmlPart.setContent(bodyText, "text/html");
+            mp.addBodyPart(htmlPart);
+            message.setContent(mp);
+        }
+        else
+            message.setText(bodyText);
+
+        return message;
     }
 
     private static Message createMessageWithEmail(MimeMessage email) throws MessagingException, IOException {
@@ -160,14 +175,18 @@ public class GmailHelper {
         return message;
     }
 
-    public static void sendMessage(String to, String from, String subject, String bodyText) throws MessagingException, IOException {
-        MimeMessage email = createEmail(to, from, subject, bodyText);
-        Message message = createMessageWithEmail(email);
+    public static void sendMessage(String to, String from, String subject, String bodyText, Boolean isHtml, ILogger logger) {
+        try {
+            MimeMessage email = createEmail(to, from, subject, bodyText, isHtml);
+            Message message = createMessageWithEmail(email);
 
-        message = getGmailService().users().messages().send(from, message).execute();
-
-        System.out.println("Message id: " + message.getId());
-        System.out.println(message.toPrettyString());
+            message = getGmailService().users().messages().send(from, message).execute();
+        }
+        catch(Exception exc){
+            logger.WriteError(exc);
+        }
+//        System.out.println("Message id: " + message.getId());
+//        System.out.println(message.toPrettyString());
     }
 
 }

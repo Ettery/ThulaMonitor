@@ -52,7 +52,7 @@ public class CheckTemperature extends Check {
         }
         catch(SQLException sqlExc)
         {
-            _logger.WriteError(sqlExc.getStackTrace().toString());
+            _logger.WriteError(sqlExc);
         }
         return values;
     }
@@ -71,33 +71,33 @@ public class CheckTemperature extends Check {
     private List<String> addLinesForSensorsNotReporting(@NotNull List<SensorOutput> values, @NotNull Configuration config, @NotNull List<String> lines){
         int count = lines.size();
         final Duration maxDuration = new Duration(config.getNoDataTimeLimit());
-        final String messageDataNotReported = "The monitor at %s has not updated temperatures for %d minutes (as at %s).  The power may be off at this location.";
+        final String messageDataNotReported = "The monitor at %s has not updated temperatures for %d minutes (last read %s).  The power may be off at this location.";
 
         // Output lines for locations which have stopped logging data
-        DateTime mustHaveValueSince = DateTime.now().minusMillis(config.getNoDataTimeLimit());
-        DateTime butNotEarlierThan = DateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
 
         // Reduce the list of sensor values by
         // 1) Taking the most recent report from each group (location), and
         // 2) Filtering to include only those which have not been updated within the last x milliseconds as configured (typically the last hour
         // 3) Ignoring those which have not been updated for more than y milliseconds (typically the last day - assume after that that there is something wrong with this location and action has been taken)
-        values.stream()
+        Map<String, Optional<SensorOutput>> groups = values.stream()
                 .collect(Collectors.groupingBy(SensorOutput::getGroupName,
-                        Collectors.maxBy(new Comparator<SensorOutput>() {public int compare(SensorOutput o1, SensorOutput o2) {return (o1.getTime().isAfter(o2.getTime())? -1 : 1);}})
-                )).entrySet().stream()
+                        Collectors.maxBy(new Comparator<SensorOutput>() {public int compare(SensorOutput o1, SensorOutput o2) {return (o1.getTime().isBefore(o2.getTime())? -1 : 1);}})
+                ));
+        groups.entrySet().stream()
                 .map(m->m.getValue().get())
-                .filter(v->(mustHaveValueSince.isAfter(v.getTime()) && butNotEarlierThan.isBefore(v.getTime())))
+                .filter(v->(mustHaveValueSince().isAfter(v.getTime()) && butNotEarlierThan().isBefore(v.getTime())))
                 .collect(Collectors.toList())
                 .forEach(v->lines.add(String.format
                         (messageDataNotReported,
                                 v.getGroupName(),
                                 new Duration(v.getTime(), DateTime.now()).getStandardMinutes(),
-                                v.getTime().toString(jodaDateTimeFmt))
+                                v.getTime().toString(jodaDateTimeFmt.withZone(config.getTimeZone())))
                         ));
 
-        if(values.size() > count){
+
+        if(lines.size() > count){
             lines.add("<p/>");
-            lines.add(String.format("No more than %d minutes should pass between temperature reports.  If this persists, please investigate what is wrong at the reported location.", maxDuration.getStandardMinutes()));
+            lines.add(String.format("Warning: No more than %d minutes should pass between temperature reports.  If this persists, please investigate what is wrong at the reported location.", maxDuration.getStandardMinutes()));
             lines.add("<p/>");
         }
 
@@ -106,11 +106,13 @@ public class CheckTemperature extends Check {
 
     private List<String> addLinesForSensorsOutOfRange(@NotNull List<SensorOutput> values, @NotNull Configuration config, @NotNull List<String> lines){
         // The <sensorname> sensor at <group> is reading <value> and it needs to stay <below/above> <min/max>
-        final String messageFmtOutOfRange = "The %s sensor at %s reading %f and it needs to stay %s %d (as at %s).";
+        final String messageFmtOutOfRange = "The %s sensor at %s is reading %f and it needs to stay %s %d (last read %s).";
         String maxDescrip = "below";
         int count = lines.size();
 
-        values.stream().filter(v->v.getValue()>config.getTemperatureLimitMax())
+        values.stream()
+                .filter(v->v.getValue()>config.getTemperatureLimitMax())
+                .filter(v->butNotEarlierThan().isBefore(v.getTime()))
                 .forEach(v->lines.add(String.format
                         (messageFmtOutOfRange,
                                 v.getSensorName(),
@@ -118,19 +120,21 @@ public class CheckTemperature extends Check {
                                 v.getValue(),
                                 maxDescrip,
                                 config.getTemperatureLimitMax(),
-                                v.getTime().toString(jodaDateTimeFmt))
+                                v.getTime().toString(jodaDateTimeFmt.withZone(config.getTimeZone())))
                         ));
 
-        if(values.size() > count){
+        if(lines.size() > count){
             lines.add("<p/>");
-            lines.add("Please check that the fridge has power and is working.  If the high temperatures persist, the vaccines will need to be moved.");
+            lines.add(String.format("Warning: Fridge temperatures should not exceed %d degC.  Please check that the fridge has power and is working.  If the high temperatures persist, the vaccines will need to be moved.", config.getTemperatureLimitMax()));
             lines.add("<p/>");
             count = lines.size();
         }
 
         String minDescrip = "above";
 
-        values.stream().filter(v->v.getValue()<config.getTemperatureLimitMin())
+        values.stream()
+                .filter(v->v.getValue()<config.getTemperatureLimitMin())
+                .filter(v->butNotEarlierThan().isBefore(v.getTime()))
                 .forEach(v->lines.add(String.format
                         (messageFmtOutOfRange,
                                 v.getSensorName(),
@@ -138,12 +142,12 @@ public class CheckTemperature extends Check {
                                 v.getValue(),
                                 minDescrip,
                                 config.getTemperatureLimitMin(),
-                                javaDateTimeFmt.format(v.getTime())
+                                v.getTime().toString(jodaDateTimeFmt.withZone(config.getTimeZone()))
                         )));
 
-        if(values.size() > count){
+        if(lines.size() > count){
             lines.add("<p/>");
-            lines.add("Please turn this fridge up a bit.  If a temperature of less than zero persists, the vaccines may freeze.");
+            lines.add("Warning: Please turn this fridge up a bit.  If a temperature of less than zero persists, the vaccines may freeze.");
             lines.add("<p/>");
         }
 
@@ -152,13 +156,18 @@ public class CheckTemperature extends Check {
 
     @Override
     protected Boolean valuesPassCheck(@NotNull List<SensorOutput> values, @NotNull Configuration config){
-        DateTime mustHaveValueSince = DateTime.now().minusMillis(config.getNoDataTimeLimit());
-        DateTime butNotEarlierThan = DateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
+        Boolean lastRecordIsRecent = values.stream().filter(v->(mustHaveValueSince().isAfter(v.getTime()) && butNotEarlierThan().isBefore(v.getTime()))).count()==0;
+        Boolean valueIsInRange = (values.stream().allMatch(v->(v.getValue()<=config.getTemperatureLimitMax() && v.getValue() >= config.getTemperatureLimitMin())));
 
-        Boolean lastRecordIsNotTooLongAgo = values.stream().filter(v->(mustHaveValueSince.isAfter(v.getTime()) && butNotEarlierThan.isBefore(v.getTime()))).count()==0;
-        Boolean valueIsNotOutOfRange = (!values.stream().anyMatch(v->(v.getValue()>config.getTemperatureLimitMax()&&v.getValue()<config.getTemperatureLimitMin())));
+        return lastRecordIsRecent && valueIsInRange;
+    }
 
-        return lastRecordIsNotTooLongAgo && valueIsNotOutOfRange;
+    private DateTime mustHaveValueSince(){
+        return DateTime.now().minusMillis(_config.getNoDataTimeLimit());
+    }
+
+    private DateTime butNotEarlierThan(){
+        return DateTime.now().minusHours(_config.getHoursBeforeWhichIgnore());
     }
 
 }
