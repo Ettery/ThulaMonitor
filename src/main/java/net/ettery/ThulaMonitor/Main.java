@@ -1,6 +1,8 @@
 package net.ettery.ThulaMonitor;
-import net.ettery.rpi.FileLogger;
-import net.ettery.rpi.ILogger;
+
+import net.ettery.utils.DatabaseUtils;
+import net.ettery.utils.FileLogger;
+import net.ettery.utils.ILogger;
 
 import java.io.*;
 import java.util.*;
@@ -19,7 +21,9 @@ public class Main {
         try {
             _props.load(new FileInputStream(args[0]));
             _configuration = new Configuration(_props);
-            DatabaseUtils.setConfiguration(_configuration);
+            DatabaseUtils.setConfiguration(_configuration.getDatabaseUrl(),
+                                                _configuration.getDatabaseUser(),
+                                                _configuration.getDatabasePass());
             _logger = new FileLogger().initialise(_props);
 
             GmailHelper.initialise(_configuration);

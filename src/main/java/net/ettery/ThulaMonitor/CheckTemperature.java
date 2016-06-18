@@ -1,21 +1,24 @@
 package net.ettery.ThulaMonitor;
 
 import net.ettery.jooq.thula.generated.tables.records.VwTemperaturesLastloggedRecord;
-import net.ettery.rpi.ILogger;
-import net.ettery.rpi.SensorOutput;
 
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import net.ettery.rpi.sensors.SensorOutput;
+import net.ettery.utils.DatabaseUtils;
+import net.ettery.utils.DateUtils;
+import net.ettery.utils.ILogger;
 import org.joda.time.*;
 import org.jooq.DSLContext;
 import org.jooq.Result;
 
 import javax.validation.constraints.NotNull;
 
-import static net.ettery.ThulaMonitor.DatabaseUtils.javaDateTimeFormat;
-import static net.ettery.ThulaMonitor.DatabaseUtils.jodaDateTimeFormat;
 import static net.ettery.jooq.thula.generated.Tables.VW_TEMPERATURES_LASTLOGGED;
+import static net.ettery.utils.DateUtils.javaDateTimeFmt;
+import static net.ettery.utils.DateUtils.jodaDateTimeFmt;
 
 public class CheckTemperature extends Check {
 
@@ -42,7 +45,7 @@ public class CheckTemperature extends Check {
             Result<VwTemperaturesLastloggedRecord> result = db.selectFrom(VW_TEMPERATURES_LASTLOGGED).fetch();
             result.stream().map(r->
                                 {
-                                    return new SensorOutput(DatabaseUtils.convertTsToLdt(r.getTime()), r.getSensorName(), r.getGroupName(), r.getValue().doubleValue(), "");
+                                    return new SensorOutput(DateUtils.convertTsToDt(r.getTime()), r.getSensorName(), r.getGroupName(), r.getValue().doubleValue(), "");
                                 })
                             .forEach(so->values.add(so));
             return values;
@@ -71,8 +74,8 @@ public class CheckTemperature extends Check {
         final String messageDataNotReported = "The monitor at %s has not updated temperatures for %d minutes (as at %s).  The power may be off at this location.";
 
         // Output lines for locations which have stopped logging data
-        LocalDateTime mustHaveValueSince = LocalDateTime.now().minusMillis(config.getNoDataTimeLimit());
-        LocalDateTime butNotEarlierThan = LocalDateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
+        DateTime mustHaveValueSince = DateTime.now().minusMillis(config.getNoDataTimeLimit());
+        DateTime butNotEarlierThan = DateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
 
         // Reduce the list of sensor values by
         // 1) Taking the most recent report from each group (location), and
@@ -88,9 +91,9 @@ public class CheckTemperature extends Check {
                 .forEach(v->lines.add(String.format
                         (messageDataNotReported,
                                 v.getGroupName(),
-                                new Duration(DateTime.parse(v.getTime().toString(jodaDateTimeFormat), jodaDateTimeFormat), DateTime.now()).getStandardMinutes(),
-                                javaDateTimeFormat.format(v.getTime())
-                        )));
+                                new Duration(v.getTime(), DateTime.now()).getStandardMinutes(),
+                                v.getTime().toString(jodaDateTimeFmt))
+                        ));
 
         if(values.size() > count){
             lines.add("<p/>");
@@ -115,8 +118,8 @@ public class CheckTemperature extends Check {
                                 v.getValue(),
                                 maxDescrip,
                                 config.getTemperatureLimitMax(),
-                                javaDateTimeFormat.format(v.getTime())
-                        )));
+                                v.getTime().toString(jodaDateTimeFmt))
+                        ));
 
         if(values.size() > count){
             lines.add("<p/>");
@@ -135,7 +138,7 @@ public class CheckTemperature extends Check {
                                 v.getValue(),
                                 minDescrip,
                                 config.getTemperatureLimitMin(),
-                                javaDateTimeFormat.format(v.getTime())
+                                javaDateTimeFmt.format(v.getTime())
                         )));
 
         if(values.size() > count){
@@ -149,8 +152,8 @@ public class CheckTemperature extends Check {
 
     @Override
     protected Boolean valuesPassCheck(@NotNull List<SensorOutput> values, @NotNull Configuration config){
-        LocalDateTime mustHaveValueSince = LocalDateTime.now().minusMillis(config.getNoDataTimeLimit());
-        LocalDateTime butNotEarlierThan = LocalDateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
+        DateTime mustHaveValueSince = DateTime.now().minusMillis(config.getNoDataTimeLimit());
+        DateTime butNotEarlierThan = DateTime.now().minusHours(config.getHoursBeforeWhichIgnore());
 
         Boolean lastRecordIsNotTooLongAgo = values.stream().filter(v->(mustHaveValueSince.isAfter(v.getTime()) && butNotEarlierThan.isBefore(v.getTime()))).count()==0;
         Boolean valueIsNotOutOfRange = (!values.stream().anyMatch(v->(v.getValue()>config.getTemperatureLimitMax()&&v.getValue()<config.getTemperatureLimitMin())));

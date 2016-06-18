@@ -68,7 +68,7 @@
     </repository>
     <repository>
       <id>my</id>
-      <url>file://${basedir}/my-repo</url>
+      <url>file://${basedir}/local-mvn-repo</url>
     </repository>
   </repositories>
   <properties>

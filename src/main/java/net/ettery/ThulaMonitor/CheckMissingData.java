@@ -1,7 +1,7 @@
 package net.ettery.ThulaMonitor;
 
-import net.ettery.rpi.ILogger;
-import net.ettery.rpi.SensorOutput;
+import net.ettery.rpi.sensors.SensorOutput;
+import net.ettery.utils.ILogger;
 
 import javax.validation.constraints.NotNull;
 import java.util.ArrayList;

@@ -1,5 +1,6 @@
 package net.ettery.ThulaMonitor;
-import net.ettery.rpi.ILogger;
+import net.ettery.utils.ILogger;
+
 import java.util.Timer;
 
 public class Monitor {

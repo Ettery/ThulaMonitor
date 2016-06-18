@@ -20,26 +20,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 
 	<dependencies>
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.39</version>
-		</dependency>
-		<dependency>
-			<groupId>org.jooq</groupId>
-			<artifactId>jooq</artifactId>
-			<version>3.8.2</version>
-		</dependency>
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>2.9.4</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.6</version>
-		</dependency>
-		<dependency>
 			<groupId>com.google.api-client</groupId>
 			<artifactId>google-api-client</artifactId>
 			<version>1.22.0</version>
@@ -55,12 +35,12 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
             <version>1.5.5</version>
         </dependency>
 		<dependency>
-			<groupId>net.ettery.rpi</groupId>
-			<artifactId>RpiTempCmd</artifactId>
+			<groupId>net.ettery</groupId>
+			<artifactId>ThulaLibrary</artifactId>
 			<version>1.0</version>
+		</dependency>
 <!-- 			<scope>system</scope>
 			<systemPath>${project.basedir}/lib/RpiTempCmd.jar</systemPath> -->
-		</dependency>
 	</dependencies>
 	
 	<repositories>
@@ -70,7 +50,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 		</repository>
 	  <repository>
 		<id>my</id>
-		<url>file://${basedir}/my-repo</url>
+		<url>file://${basedir}/local-mvn-repo</url>
 	  </repository>
 	</repositories>
 	
