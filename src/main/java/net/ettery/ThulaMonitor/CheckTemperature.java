@@ -40,8 +40,8 @@ public class CheckTemperature extends Check {
     private List<SensorOutput> loadLastValues(@NotNull Configuration config){
         List<SensorOutput> values = new ArrayList<SensorOutput>();
 
-        try{
-            DSLContext db = DatabaseUtils.jOoqConnection();
+        try(DSLContext db = DatabaseUtils.jOoqConnection()){
+
             Result<VwTemperaturesLastloggedRecord> result = db.selectFrom(VW_TEMPERATURES_LASTLOGGED).fetch();
             result.stream().map(r->
                                 {

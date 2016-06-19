@@ -23,7 +23,9 @@ public abstract class Check extends TimerTask {
     }
 
     @Override
-    public abstract void run();
+    public void run(){
+        _logger.WriteInfo("Check(s) completed.");
+    };
 
     protected void logFailedCheck(@NotNull List<String> messages, @NotNull ILogger logger){
         messages.stream().forEach(m->{
