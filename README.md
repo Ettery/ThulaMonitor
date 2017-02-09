@@ -1,7 +1,7 @@
 # Thula Baby Centre REST API
 
 ##Status
-This temperature monitoring system has been running in 2 clinics for 7 months, with notifications and escalations.  On two occassions we have been notified of problems with fridges which, without the system, would probably have resulted in the loss of vaccines.
+(Jan 2017) This temperature monitoring system has been running in 2 clinics for 7 months, with notifications and escalations.  On two occasions we have been notified of problems with fridges which, without the system, would probably have resulted in the loss of vaccines.
 
 We now have plenty of data to build additional functionality on top of, and we have ironed out a number of real-life issues.  Some challenges which remain are not easy to deal with:
 
