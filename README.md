@@ -1,5 +1,14 @@
 # Thula Baby Centre REST API
 
+##Status
+This temperature monitoring system has been running in 2 clinics for 7 months, with notifications and escalations.  On two occassions we have been notified of problems with fridges which, without the system, would probably have resulted in the loss of vaccines.
+
+We now have plenty of data to build additional functionality on top of, and we have ironed out a number of real-life issues.  Some challenges which remain are not easy to deal with:
+
+* False positives when fridges are opened for stock takes or on busy days
+* Sensor positioning is important, as most fridges appear to have warm and cold spots, which have wide temperature fluctuations over time.
+
+
 ###Client & Appointments API
 ####GET
 * `/api/v1/clients`
@@ -28,15 +37,20 @@ Health Check
 
 To see your applications health enter url `https://localhost:8444/healthcheck`
 
+Still to do 2017/01/05
+---
+1. Provide an SPA Javascript UI for reviewing and reporting tempratures over time
+
+
 Outstanding issues 2016/06/12
 ---
-1. Setup both systems to run at boot and restart on crash
-1. Install in the fridge and start getting readings
-1. Temperature date/time values returned by the REST interface are always the same value
-1. Write a monitoring application for the server ASAP
-1. Add filtering to temperature and client query APIs
-1. Security warning - RPi needs certificate registered
-1. Error handling and logging on both sides needs to be improved and more consistent
+1. Setup both systems to run at boot and restart on crash - DONE
+1. Install in the fridge and start getting readings - DONE
+1. Temperature date/time values returned by the REST interface are always the same value - FIXED
+1. Write a monitoring application for the server ASAP - DONE
+1. Add filtering to temperature and client query APIs - DONE
+1. Security warning - RPi needs certificate registered - DONE
+1. Error handling and logging on both sides needs to be improved and more consistent - DONE
 
 Outstanding issues 2016/05/29
 ---
